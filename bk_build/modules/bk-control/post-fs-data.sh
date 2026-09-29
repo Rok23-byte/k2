@@ -55,8 +55,34 @@ setup_extphone_stub()
 	done
 }
 
+setup_powerkeeper_odm()
+{
+	BK_ODM_SOURCE=/odm/etc/setting.xml
+	BK_ODM_DIR=/data/adb/bk-kernel/powerkeeper-odm
+	BK_ODM_COPY=$BK_ODM_DIR/setting.xml
+	BK_ODM_TMP=$BK_ODM_COPY.$$
+
+	[ -f "$BK_ODM_SOURCE" ] || return 0
+	case "$(ls -Z "$BK_ODM_SOURCE" 2>/dev/null)" in
+		*u:object_r:vendor_file:s0*) ;;
+		*) return 0 ;;
+	esac
+	mkdir -p "$BK_ODM_DIR" || return 0
+	cp "$BK_ODM_SOURCE" "$BK_ODM_TMP" || return 0
+	if ! cmp -s "$BK_ODM_SOURCE" "$BK_ODM_TMP" || \
+	   ! chcon u:object_r:vendor_configs_file:s0 "$BK_ODM_TMP"; then
+		rm -f "$BK_ODM_TMP"
+		return 0
+	fi
+	chown 0:0 "$BK_ODM_TMP"
+	chmod 0644 "$BK_ODM_TMP"
+	mv -f "$BK_ODM_TMP" "$BK_ODM_COPY" || return 0
+	mount -o bind "$BK_ODM_COPY" "$BK_ODM_SOURCE"
+}
+
 rm -f /data/adb/post-fs-data.d/bk-zram-writeback.sh
 setup_miui_keyboard
 setup_ufs_io
 setup_extphone_stub
+setup_powerkeeper_odm
 "$MODDIR/scripts/bk-zram-writeback.sh"
