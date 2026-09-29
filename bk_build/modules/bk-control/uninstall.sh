@@ -18,6 +18,24 @@ case "$PID" in
 	''|*[!0-9]*) ;;
 	*) kill "$PID" 2>/dev/null || true ;;
 esac
+PID_FILE=/data/adb/bk-kernel/bk-log-follow.dmesg.pid
+PID=$(cat "$PID_FILE" 2>/dev/null)
+case "$PID" in
+	''|*[!0-9]*) ;;
+	*) kill "$PID" 2>/dev/null || true ;;
+esac
+PID_FILE=/data/adb/bk-kernel/bk-log-follow.logcat.pid
+PID=$(cat "$PID_FILE" 2>/dev/null)
+case "$PID" in
+	''|*[!0-9]*) ;;
+	*) kill "$PID" 2>/dev/null || true ;;
+esac
+PID_FILE=/data/adb/bk-kernel/bk-log-follow.pid
+PID=$(cat "$PID_FILE" 2>/dev/null)
+case "$PID" in
+	''|*[!0-9]*) ;;
+	*) kill "$PID" 2>/dev/null || true ;;
+esac
 PID_FILE=/data/adb/bk-kernel/bk-wake-guard.pid
 PID=$(cat "$PID_FILE" 2>/dev/null)
 case "$PID" in

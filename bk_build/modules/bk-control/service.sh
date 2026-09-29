@@ -5,7 +5,8 @@ export BK_CONTROL_DIR=$MODDIR
 
 for BK_EXEC in bkctl action.sh \
   scripts/bk-reburnout.sh scripts/bk-zram-writeback.sh scripts/bk-wake-guard.sh \
-  scripts/bk-keyboard-ime.sh bin/bk-zram-setup bin/bk-keyboard-monitor; do
+  scripts/bk-keyboard-ime.sh scripts/bk-log-follow.sh \
+  bin/bk-zram-setup bin/bk-keyboard-monitor; do
   chmod 0755 "$MODDIR/$BK_EXEC" 2>/dev/null || true
 done
 
@@ -51,6 +52,7 @@ esac
 "$MODDIR/bin/bk-keyboard-monitor" &
 printf '%s\n' "$!" > "$BK_KEYBOARD_PID_FILE"
 "$MODDIR/scripts/bk-keyboard-ime.sh"
+"$MODDIR/scripts/bk-log-follow.sh"
 "$MODDIR/scripts/bk-wake-guard.sh"
 "$MODDIR/bkctl" apply || (
 	BK_RETRY=0

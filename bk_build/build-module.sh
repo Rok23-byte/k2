@@ -24,6 +24,7 @@ for file in module.prop customize.sh bkctl action.sh service.sh \
   post-fs-data.sh uninstall.sh skip_mount \
   scripts/bk-reburnout.sh scripts/bk-zram-writeback.sh \
   scripts/bk-wake-guard.sh scripts/bk-keyboard-ime.sh \
+  scripts/bk-log-follow.sh \
   webroot/index.html webroot/bkControl.js \
   webroot/bridge.js webroot/style.css bin/bkk-log-exporter.apk \
   webroot/composeResources/org.bkkernel.control.generated.resources/drawable/home.svg \
@@ -50,7 +51,8 @@ case "$MODULE_VERSION" in
 esac
 for script in customize.sh bkctl action.sh service.sh post-fs-data.sh \
   uninstall.sh scripts/bk-reburnout.sh scripts/bk-zram-writeback.sh \
-  scripts/bk-wake-guard.sh scripts/bk-keyboard-ime.sh; do
+  scripts/bk-wake-guard.sh scripts/bk-keyboard-ime.sh \
+  scripts/bk-log-follow.sh; do
   sh -n "$MODULE_DIR/$script"
 done
 command -v zip >/dev/null 2>&1 || { echo "zip is required" >&2; exit 2; }
@@ -91,6 +93,7 @@ chmod 0755 "$MODULE_STAGE/bkctl" "$MODULE_STAGE/customize.sh" \
   "$MODULE_STAGE/scripts/bk-zram-writeback.sh" \
   "$MODULE_STAGE/scripts/bk-wake-guard.sh" \
   "$MODULE_STAGE/scripts/bk-keyboard-ime.sh" \
+  "$MODULE_STAGE/scripts/bk-log-follow.sh" \
   "$MODULE_STAGE/bin/bk-zram-setup" \
   "$MODULE_STAGE/bin/bk-keyboard-monitor"
 (cd "$MODULE_STAGE" && zip -qr9 "$ZIP_PATH" .)
