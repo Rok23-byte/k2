@@ -8,6 +8,7 @@
 #include <linux/mm.h>
 #include <linux/file.h>
 #include <linux/fdtable.h>
+#include <linux/close_range.h>
 #include <linux/fsnotify.h>
 #include <linux/module.h>
 #include <linux/tty.h>
@@ -1269,3 +1270,18 @@ int stream_open(struct inode *inode, struct file *filp)
 }
 
 EXPORT_SYMBOL(stream_open);
+
+/**
+ * close_range() - Close all file descriptors in a given range.
+ * @fd:	starting file descriptor to close
+ * @max_fd: last file descriptor to close
+ * @flags: CLOSE_RANGE_UNSHARE or CLOSE_RANGE_CLOEXEC
+ *
+ * This closes a range of file descriptors. All file descriptors from @fd up
+ * to and including @max_fd are closed.
+ */
+SYSCALL_DEFINE3(close_range, unsigned int, fd, unsigned int, max_fd,
+		unsigned int, flags)
+{
+	return __close_range(fd, max_fd, flags);
+}

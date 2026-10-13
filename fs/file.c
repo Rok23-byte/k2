@@ -18,6 +18,7 @@
 #include <linux/vmalloc.h>
 #include <linux/file.h>
 #include <linux/fdtable.h>
+#include <linux/close_range.h>
 #include <linux/bitops.h>
 #include <linux/interrupt.h>
 #include <linux/spinlock.h>
@@ -1024,3 +1025,85 @@ int iterate_fd(struct files_struct *files, unsigned n,
 	return res;
 }
 EXPORT_SYMBOL(iterate_fd);
+
+static void __range_cloexec(struct files_struct *cur_fds, unsigned int fd,
+			   unsigned int max_fd)
+{
+	struct fdtable *fdt;
+
+	if (fd > max_fd)
+		return;
+
+	spin_lock(&cur_fds->file_lock);
+	fdt = files_fdtable(cur_fds);
+	bitmap_set(fdt->close_on_exec, fd, max_fd - fd + 1);
+	spin_unlock(&cur_fds->file_lock);
+}
+
+static void __range_close(struct files_struct *cur_fds, unsigned int fd,
+			 unsigned int max_fd)
+{
+	unsigned int n;
+
+	for (n = fd; n <= max_fd; n++) {
+		__close_fd(cur_fds, n);
+		cond_resched();
+	}
+}
+
+/**
+ * __close_range() - Close or make cloexec all file descriptors in a range.
+ * @fd:	starting file descriptor to close
+ * @max_fd: last file descriptor to close
+ * @flags: CLOSE_RANGE_UNSHARE or CLOSE_RANGE_CLOEXEC
+ *
+ * All file descriptors from @fd up to and including @max_fd are closed, or
+ * marked close-on-exec when CLOSE_RANGE_CLOEXEC is set. With
+ * CLOSE_RANGE_UNSHARE the descriptor table is made private first so that a
+ * shared table is left untouched.
+ */
+int __close_range(unsigned fd, unsigned max_fd, unsigned int flags)
+{
+	unsigned int cur_max;
+	struct task_struct *me = current;
+	struct files_struct *cur_fds = me->files, *fds = NULL;
+
+	if (flags & ~(CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC))
+		return -EINVAL;
+
+	if (fd > max_fd)
+		return -EINVAL;
+
+	rcu_read_lock();
+	cur_max = files_fdtable(cur_fds)->max_fds;
+	rcu_read_unlock();
+
+	/* cap to last valid index into fdtable */
+	cur_max--;
+
+	if (flags & CLOSE_RANGE_UNSHARE) {
+		int ret;
+
+		ret = unshare_files(&fds);
+		if (ret)
+			return ret;
+
+		/*
+		 * We used to share our file descriptor table, and have now
+		 * created a private one, make sure we're using it below.
+		 */
+		cur_fds = me->files;
+	}
+
+	max_fd = min(max_fd, cur_max);
+
+	if (flags & CLOSE_RANGE_CLOEXEC)
+		__range_cloexec(cur_fds, fd, max_fd);
+	else
+		__range_close(cur_fds, fd, max_fd);
+
+	if (fds)
+		put_files_struct(fds);
+
+	return 0;
+}
