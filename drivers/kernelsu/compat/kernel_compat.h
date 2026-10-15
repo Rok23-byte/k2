@@ -129,7 +129,7 @@ static_assert(1 == 0, "Unsupported architecture!");
 #endif
 #endif
 
-/*
+/* 
 * For EMUI 10+ or HarmonyOS2 Based EMUI10+ Devices
 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 0)) && (LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0))
@@ -465,11 +465,35 @@ static inline struct file *ksu_filp_open_nonotify(const char *path, int flags)
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0) || defined(KSU_COMPAT_HAS_MODERN_DENTRY_OPEN)
     f = dentry_open(&p, flags | __FMODE_NONOTIFY, current_cred());
 #else
+    // clang-format off
+
+    // Old dentry_open consumes dentry / mnt!
+    // We have 2 choice
+    // 1. path_get or dget and mntget before call dentry_open
+    // 2. don't path_put when it happen
+    //
+    // I choose #2, because it can optimize 1 dentry / mnt get and put
+    // Because stupid compiler's dead code warning, we can't directly return f when this case end
+    // define DENTRY_OPEN_COSUME_CONTEXT and ifdef for path_put to let them shut up
+    #define DENTRY_OPEN_CONSUME_CONTEXT
+    // clang-format on
     f = dentry_open(p.dentry, p.mnt, flags | __FMODE_NONOTIFY, current_cred());
+    // return f;
 #endif
 
+#ifndef DENTRY_OPEN_CONSUME_CONTEXT
     path_put(&p);
+#endif
     return f;
 }
+
+// use in sepolicy.c and selinux_hide.c
+
+// symtab_search is introduced on 5.9.0:
+// https://elixir.bootlin.com/linux/v5.9-rc1/source/security/selinux/ss/symtab.h
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 9, 0) && !defined(KSU_COMPAT_HAS_SYMTAB_SEARCH)
+#define symtab_search(s, name) hashtab_search((s)->table, name)
+#define symtab_insert(s, name, datum) hashtab_insert((s)->table, name, datum)
+#endif
 
 #endif

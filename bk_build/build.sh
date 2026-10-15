@@ -272,7 +272,7 @@ git -C "$KERNEL_DIR" ls-files --others --exclude-standard > \
   echo "KERNEL_DIRTY_DIFF_SHA256=$dirty_diff_sha"
   echo "ANDROID_STABLE_COMMIT=014241ad77dda0eafbdf671d5b8e86917d8ec97e"
   echo "QUALCOMM_REFERENCE_COMMIT=d1966c80dcfcabe6058eba05ded94a9af967760f"
-  echo "KERNELSU_SOURCE=ReSukiSU"
+  echo "KERNELSU_SOURCE=BakaSU"
   echo "KERNELSU_COMMIT=$(cat "$KERNEL_DIR/drivers/kernelsu/UPSTREAM_COMMIT")"
   echo "DROIDSPACES_COMMIT=7412f6fb732fe7f5e3dc6ac0848d82ef9ff98acf"
   echo "KERNELSU_TREE_SHA256=$ksu_tree_sha"

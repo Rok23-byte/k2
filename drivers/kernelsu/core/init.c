@@ -169,11 +169,11 @@ MODULE_PARM_DESC(block_modules, "Comma-separated preset module names to acknowle
 int __init kernelsu_init(void)
 {
     // clang-format off
-
+    
     // ddk in x86-64 doesn't have generated/compile.h
     // manually ifdef in there...
 #ifdef MODULE
-    #if defined(__x86_64__)
+    #if defined(__x86_64__) 
         pr_info("Initialized with driver version: %u, full_version: %s, ABI: x86-64, Work mode: LKM\n", KSU_VERSION, KSU_VERSION_FULL);
     #elif defined(CONFIG_ARM64)
         pr_info("Initialized with driver version: %u, full_version: %s, ABI: aarch64, Work mode: LKM\n", KSU_VERSION, KSU_VERSION_FULL);
