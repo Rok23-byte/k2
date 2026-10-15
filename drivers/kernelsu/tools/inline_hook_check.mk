@@ -23,14 +23,14 @@ define check_ksu_manual_guard
     endif
 endef
 
-$(info -- You are using SUSFS, if you face any issues, please MAKE SURE you are using LATEST SUSFS KERNEL SIDE before submit issue to ReSukiSU.)
+$(info -- You are using SUSFS, if you face any issues, please MAKE SURE you are using LATEST SUSFS KERNEL SIDE before submit issue to BakaSU.)
 $(info -- We keep tracking simonpunk's latest changes, and don't maintain ANY backward compatibility for old version of susfs.)
 
 $(eval $(call check_ksu_hook_incompatible,ksu_vfs_read_hook,$(srctree)/fs/read_write.c))
 
 # Due to https://gitlab.com/simonpunk/susfs4ksu/-/commit/00be2d47171a0d8f0edb73ca1d5b45340bd72239
 # The commit has using static_key to replace the bool check.
-# So we need to add these old hook check to make sure the old hooks are changed to new hooks,
+# So we need to add these old hook check to make sure the old hooks are changed to new hooks, 
 $(eval $(call check_ksu_hook_incompatible,ksu_input_hook,$(srctree)/drivers/input/input.c))
 $(eval $(call check_ksu_hook_incompatible,ksu_execveat_hook,$(srctree)/fs/exec.c))
 $(eval $(call check_ksu_hook_incompatible,ksu_init_rc_hook,$(srctree)/fs/read_write.c))
