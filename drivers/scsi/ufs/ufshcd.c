@@ -8805,12 +8805,19 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	size_t buff_len;
 	u8 model_index, lun;
 	u8 *desc_buf;
+	u8 *str_desc_buf = NULL;
 	u32 d_lu_wb_buf_alloc;
 
 	buff_len = max_t(size_t, hba->desc_size.dev_desc,
 			 QUERY_DESC_MAX_SIZE + 1);
 	desc_buf = kmalloc(buff_len, GFP_KERNEL);
 	if (!desc_buf) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+	str_desc_buf = kmalloc(QUERY_DESC_MAX_SIZE + 1, GFP_KERNEL);
+	if (!str_desc_buf) {
 		err = -ENOMEM;
 		goto out;
 	}
@@ -8831,27 +8838,35 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 
 	model_index = desc_buf[DEVICE_DESC_PARAM_PRDCT_NAME];
 
-	/* Zero-pad entire buffer for string termination. */
-	memset(desc_buf, 0, buff_len);
+	/*
+	 * Read wspecversion before desc_buf is reused for the product name:
+	 * ufshcd_read_string_desc() overwrites desc_buf, so reading the spec
+	 * version afterwards returns model-name bytes (SK Hynix's 14-char
+	 * part names land in the zero-padded tail) and reports 0x0000.
+	 * That makes a UFS 3.x part look like 2.x and wrongly disables the
+	 * VCCQ rail and the G4 rate-A reinit path.
+	 */
+	dev_desc->wspecversion = desc_buf[DEVICE_DESC_PARAM_SPEC_VER] << 8 |
+				  desc_buf[DEVICE_DESC_PARAM_SPEC_VER + 1];
 
-	err = ufshcd_read_string_desc(hba, model_index, desc_buf,
-				QUERY_DESC_MAX_SIZE, ASCII_STD);
+	/* Zero-pad entire buffer for string termination. */
+	memset(str_desc_buf, 0, QUERY_DESC_MAX_SIZE + 1);
+
+	err = ufshcd_read_string_desc(hba, model_index, str_desc_buf,
+					QUERY_DESC_MAX_SIZE, ASCII_STD);
 	if (err) {
 		dev_err(hba->dev, "%s: Failed reading Product Name. err = %d\n",
 			__func__, err);
 		goto out;
 	}
 
-	desc_buf[QUERY_DESC_MAX_SIZE] = '\0';
-	strlcpy(dev_desc->model, (desc_buf + QUERY_DESC_HDR_SIZE),
-		min_t(u8, desc_buf[QUERY_DESC_LENGTH_OFFSET],
+	str_desc_buf[QUERY_DESC_MAX_SIZE] = '\0';
+	strlcpy(dev_desc->model, (str_desc_buf + QUERY_DESC_HDR_SIZE),
+		min_t(u8, str_desc_buf[QUERY_DESC_LENGTH_OFFSET],
 		      MAX_MODEL_LEN));
 
 	/* Null terminate the model string */
 	dev_desc->model[MAX_MODEL_LEN] = '\0';
-
-	dev_desc->wspecversion = desc_buf[DEVICE_DESC_PARAM_SPEC_VER] << 8 |
-				  desc_buf[DEVICE_DESC_PARAM_SPEC_VER + 1];
 	dev_info(hba->dev, "%s - UFS Version - 0x%x\n",
 			__func__, dev_desc->wspecversion);
 	dev_info(hba->dev, "%s - UFS Manufacturer ID - 0x%x\n",
@@ -8917,6 +8932,7 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 skip_unit_desc:
 out:
 	kfree(desc_buf);
+	kfree(str_desc_buf);
 	return err;
 }
 
